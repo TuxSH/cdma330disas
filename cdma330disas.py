@@ -53,12 +53,12 @@ def decodeInstruction(buf, off):
             return off + 2, "<invalid>"
     elif (b & ~2) == 0x20:
         b2 = unpack_from("<B", buf, off + 1)[0]
-        return off + 2, "{0:10}0x{1:X}, {2}".format("LP", b2 + 1, (b & 2) >> 1)
+        return off + 2, "{0:10}0x{1:X}".format("LP.{0}".format((b & 2) >> 1), b2 + 1)
     elif (b & ~0x17) == 0x28:
         b2 = unpack_from("<B", buf, off + 1)[0]
         kind = ("", "S", "<invalid>", "B")[b & 3]
-        nf = "" if ((b & 0x10) >> 4) else ", FE"
-        return off + 2, "{0:10}{1:08X}, {2}{3}".format("LPEND"+kind, off - b2, (b & 4) >> 2, nf)
+        nf = "" if ((b & 0x10) >> 4) else ".FE"
+        return off + 2, "{0:10}{1:08X}".format("LPEND{0}{1}.{2}".format(kind, nf, (b & 4) >> 2), off - b2)
     elif b == 0xBC:
         b2 = unpack_from("<B", buf, off + 1)[0]
         if (b2 & ~7) == 0:
