@@ -12,6 +12,38 @@ Corelink DMA-330 disassembler
 
 import argparse
 from struct import *
+
+def parseCcrSubValue(ccrHalf, prefix):
+    L = []
+    a = "I" if (ccrHalf & 1) else "F"
+    s = (ccrHalf >> 1) & 7
+    b = (ccrHalf >> 4) & 15
+    p = (ccrHalf >> 8) & 7
+    c = (ccrHalf >> 10) & 7
+
+    if b != 0:
+        L.append("{0}B{1}".format(prefix, b + 1))
+    if s != 0:
+        L.append("{0}S{1}".format(prefix, "<reserved>" if s > 4 else 8 * (1 << s)))
+    if a != "I":
+        L.append("{0}A{1}".format(prefix, a))
+    if p != 0:
+        L.append("{0}P{1}".format(prefix, p))
+    if c != 0:
+        L.append("{0}C{1}".format(prefix, c))
+
+    return ' '.join(L)
+
+
+def parseCcrValue(ccr):
+    L = [parseCcrSubValue(ccr & 0x3FFF, "S"), parseCcrSubValue((ccr >> 14) & 0x3FFF, "D")]
+
+    es = (ccr >> 28) & 3
+    if es != 0:
+        L.append("ES{0}".format("<reserved>" if es > 4 else 8 * (1 << es)))
+
+    return ' '.join(L)
+
 def decodeInstruction(buf, off):
     b = unpack_from("<B", buf, off)[0]
     if (b & ~2) == 0x54:
@@ -54,17 +86,20 @@ def decodeInstruction(buf, off):
     elif (b & ~2) == 0x20:
         b2 = unpack_from("<B", buf, off + 1)[0]
         return off + 2, "{0:14}0x{1:X}".format("LP.{0}".format((b & 2) >> 1), b2 + 1)
-    elif (b & ~0x17) == 0x28:
+    elif (b & ~0x17) == 0x28 and (b & 0x11) != 1:
         b2 = unpack_from("<B", buf, off + 1)[0]
         kind = ("", "S", "<invalid>", "B")[b & 3]
-        nf = "" if ((b & 0x10) >> 4) else ".FE"
-        return off + 2, "{0:14}{1:08X}".format("LPEND{0}{1}.{2}".format(kind, nf, (b & 4) >> 2), off - b2)
+        nf_lc = ".{0}".format((b & 4) >> 2 if ((b & 0x10) >> 4) else "FE")
+        return off + 2, "{0:14}{1:08X}".format("LPEND{0}{1}".format(kind, nf_lc), off - b2)
     elif b == 0xBC:
         b2 = unpack_from("<B", buf, off + 1)[0]
         if (b2 & ~7) == 0:
             reg = ("SAR", "CCR", "DAR", "<invalid>", "<invalid>", "<invalid>", "<invalid>", "<invalid>")[b2 & 3]
             imm = unpack_from("<I", buf, off + 2)[0]
-            return off + 6, "{0:14}{1}, #0x{2:08X}".format("MOV", reg, imm)
+            if reg == "CCR":
+                return off + 6, "{0:14}{1}, {2}".format("MOV", reg, parseCcrValue(imm))
+            else:
+                return off + 6, "{0:14}{1}, #0x{2:08X}".format("MOV", reg, imm)
         else:
             return off + 2, "<invalid>"
     elif b == 0x18:
