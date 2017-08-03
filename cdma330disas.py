@@ -152,10 +152,12 @@ def main(args=None):
     data = args.infile.read()
     args.infile.close()
     off = 0
+    lines = []
     while off < len(data):
         newOff, instr = decodeInstruction(data, off)
-        print("{0:08X}:    {1}".format(off+args.base_address, instr))
+        lines.append("{0:08X}:    {1}".format(off+args.base_address, instr))
         off = newOff
+    print('\n'.join(lines))
 
 if __name__ == '__main__':
     main()
