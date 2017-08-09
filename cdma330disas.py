@@ -49,11 +49,11 @@ def decodeInstruction(buf, off):
     if (b & ~2) == 0x54:
         reg = "DAR" if (b & 1) else "SAR"
         imm = unpack_from("<H", buf, off + 1)[0]
-        return off + 3, "{0:14}{1}, #0x{2:X}".format("DDH", reg, imm)
+        return off + 3, "{0:14}{1}, #0x{2:X}".format("ADDH", reg, imm)
     elif (b & ~2) == 0x5C:
         reg = "DAR" if (b & 1) else "SAR"
         imm = unpack_from("<H", buf, off + 1)[0]
-        return off + 3, "{0:14}{1}, #0x{2:X}".format("DNH", reg, imm)
+        return off + 3, "{0:14}{1}, #0x{2:X}".format("ADNH", reg, imm)
     elif b == 0:
         return off + 1, "END"
     elif b == 0x35:
