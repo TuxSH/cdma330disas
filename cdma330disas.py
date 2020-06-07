@@ -19,7 +19,7 @@ def parseCcrSubValue(ccrHalf, prefix):
     s = (ccrHalf >> 1) & 7
     b = (ccrHalf >> 4) & 15
     p = (ccrHalf >> 8) & 7
-    c = (ccrHalf >> 10) & 7
+    c = (ccrHalf >> 11) & 7
 
     if b != 0:
         L.append("{0}B{1}".format(prefix, b + 1))
@@ -38,7 +38,7 @@ def parseCcrSubValue(ccrHalf, prefix):
 def parseCcrValue(ccr):
     L = [parseCcrSubValue(ccr & 0x3FFF, "S"), parseCcrSubValue((ccr >> 14) & 0x3FFF, "D")]
 
-    es = (ccr >> 28) & 3
+    es = (ccr >> 28) & 7
     if es != 0:
         L.append("ES{0}".format("<reserved>" if es > 4 else 8 * (1 << es)))
 
@@ -47,11 +47,11 @@ def parseCcrValue(ccr):
 def decodeInstruction(buf, off):
     b = unpack_from("<B", buf, off)[0]
     if (b & ~2) == 0x54:
-        reg = "DAR" if (b & 1) else "SAR"
+        reg = "DAR" if (b & 2) else "SAR"
         imm = unpack_from("<H", buf, off + 1)[0]
         return off + 3, "{0:14}{1}, #0x{2:X}".format("ADDH", reg, imm)
     elif (b & ~2) == 0x5C:
-        reg = "DAR" if (b & 1) else "SAR"
+        reg = "DAR" if (b & 2) else "SAR"
         imm = unpack_from("<H", buf, off + 1)[0]
         return off + 3, "{0:14}{1}, #0x{2:X}".format("ADNH", reg, imm)
     elif b == 0:
@@ -63,14 +63,14 @@ def decodeInstruction(buf, off):
         else:
             return off + 2, "<invalid>"
     elif (b & ~2) == 0xA0:
-        b2 = unpack_from("<B", buf, off + 1)
-        if (b2 & 7) == 0:
-            secure = ", ns" if (b & 1) else ""
+        b2 = unpack_from("<B", buf, off + 1)[0]
+        if (b2 & ~7) == 0:
+            secure = ", ns" if (b & 2) else ""
             chan = "C{0}".format(b2 & 7)
             imm = unpack_from("<I", buf, off + 2)[0]
-            return off + 6, "{0:14}{1}, 0x{1:08X}{2}".format("GO", chan, imm, secure)
+            return off + 6, "{0:14}{1}, 0x{2:08X}{3}".format("GO", chan, imm, secure)
         else:
-                return off + 2, "<invalid>"
+            return off + 6, "<invalid>"
     elif b == 1:
         return off + 1, "KILL"
     elif (b & ~3) == 4:
