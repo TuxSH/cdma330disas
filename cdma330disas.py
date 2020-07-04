@@ -21,10 +21,8 @@ def parseCcrSubValue(ccrHalf, prefix):
     p = (ccrHalf >> 8) & 7
     c = (ccrHalf >> 11) & 7
 
-    if b != 0:
-        L.append("{0}B{1}".format(prefix, b + 1))
-    if s != 0:
-        L.append("{0}S{1}".format(prefix, "<reserved>" if s > 4 else 8 * (1 << s)))
+    L.append("{0}B{1}".format(prefix, b + 1))
+    L.append("{0}S{1}".format(prefix, "<reserved>" if s > 4 else 1 << s))
     if a != "I":
         L.append("{0}A{1}".format(prefix, a))
     if p != 0:
